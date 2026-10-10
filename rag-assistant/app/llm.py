@@ -1,4 +1,4 @@
-"""Thin wrapper around any OpenAI-compatible chat API (Groq by default)."""
+"""Thin wrapper around Agent Router (Axon) OpenAI-compatible chat API."""
 
 from collections.abc import Iterator
 from functools import lru_cache
@@ -12,14 +12,22 @@ class LLMError(Exception):
     """The language model could not be reached or returned an error."""
 
 
+def _openai_base_url() -> str:
+    base = settings.llm_base_url.rstrip("/")
+    if base.endswith("/v1"):
+        return base
+    return f"{base}/v1"
+
+
 @lru_cache
 def _client() -> openai.OpenAI:
     # The SDK retries timeouts, 429s and 5xx errors with backoff.
     return openai.OpenAI(
-        base_url=settings.llm_base_url,
+        base_url=_openai_base_url(),
         api_key=settings.llm_api_key,
         timeout=settings.llm_timeout_seconds,
         max_retries=2,
+        default_headers={"User-Agent": "rag-assistant/1.0"},
     )
 
 

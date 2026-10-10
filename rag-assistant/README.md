@@ -4,7 +4,7 @@ Upload documents (PDF, TXT, MD) into **namespaces** and **collections**, then ch
 Answers **stream** back token by token, with **citations** (file + page) and **conversational memory**.
 
 - **Backend:** FastAPI · PostgreSQL + pgvector · SQLAlchemy
-- **AI:** any OpenAI-compatible LLM (Groq `gpt-oss-120b` by default, free tier) · local embeddings (`bge-small-en-v1.5` via fastembed, no API key)
+- **AI:** Agent Router (Axon) `deepseek-v4-flash` · local embeddings (`bge-small-en-v1.5` via fastembed, no API key)
 - **UI:** Streamlit
 - **Ops:** Docker Compose · JSON logs with request ids · `/health` · pytest
 
@@ -29,7 +29,7 @@ Architecture, diagrams and trade-offs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 ### Option A: Docker (recommended)
 
 ```bash
-cp .env.example .env          # put your LLM_API_KEY in it (free key: https://console.groq.com)
+cp .env.example .env          # set AXON_API_KEY (Agent Router)
 docker compose up --build
 ```
 
@@ -106,7 +106,7 @@ All settings are environment variables (see [.env.example](.env.example) and [ap
 |---|---|---|
 | `DATABASE_URL` | local Postgres | Postgres with pgvector (Supabase works) |
 | `JWT_SECRET` | placeholder | **Set a long random value in production** |
-| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | Groq / – / `openai/gpt-oss-120b` | Any OpenAI-compatible API |
+| `AXON_BASE_URL` / `AXON_API_KEY` / `LLM_MODEL` | `https://agentrouter.org` / – / `deepseek-v4-flash` | `LLM_BASE_URL` and `LLM_API_KEY` aliases supported |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Local embedding model (384-dim) |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | 1000 / 150 | Characters per chunk / overlap |
 | `TOP_K` | 5 | Chunks retrieved per question |

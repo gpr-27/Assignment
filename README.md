@@ -18,11 +18,12 @@ cp .env.example .env
 
 | Variable | Required? | What to put |
 |---|---|---|
-| `LLM_API_KEY` | **Yes** | Free Groq key: sign up at https://console.groq.com → **API Keys** → *Create API Key* (starts with `gsk_`) |
+| `AXON_API_KEY` | **Yes** | Agent Router (Axon) API key (`LLM_API_KEY` / `AGENTROUTER_API_KEY` also work) |
 | `DATABASE_URL` | Only without Docker | Supabase: **Project Settings → Database → Connection string → Session pooler** (port 5432). Docker Compose provides its own database and ignores this. |
 | `JWT_SECRET` | Yes for any real deployment | A long random string: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional | The first admin account, created on startup. Default `admin@example.com` / `admin12345` |
-| `LLM_BASE_URL` / `LLM_MODEL` | Optional | Defaults to Groq `openai/gpt-oss-120b`. Any OpenAI-compatible provider works (OpenAI, Ollama, …). |
+| `AXON_BASE_URL` | Optional | Agent Router endpoint; default `https://agentrouter.org` (`LLM_BASE_URL` alias). |
+| `LLM_MODEL` | Optional | Chat model id; default `deepseek-v4-flash`. |
 
 > **Use a separate database for each project.** Both have a `users` table with different columns. On Supabase's free tier, create **two projects** (one per app) and use each one's connection string.
 
@@ -76,6 +77,6 @@ Diagrams are written in Mermaid, which GitHub renders automatically.
 - **Auth:** bcrypt + JWT; roles checked on the server for every request.
 - **Logging:** one JSON line per request with request id, status and latency; `X-Request-ID` header; unexpected errors return `500` + request id, never a stack trace.
 - **Resilience:** LLM timeouts + retries; LLM failures return a clean error while the rest of the app keeps working; DB connection retry on startup; Docker health checks and restart policies.
-- **LLM:** Groq's free tier through the standard OpenAI client. Any OpenAI-compatible API works by changing `.env`.
+- **LLM:** Agent Router (Axon) via the standard OpenAI client (`deepseek-v4-flash`). Override base URL or model in `.env` if needed.
 
 What's intentionally *not* included (bonus items, out of scope): CI/CD, caching, metrics dashboards, cloud deployment, job queues, DB migrations. Each project's trade-off section says how these would be added.

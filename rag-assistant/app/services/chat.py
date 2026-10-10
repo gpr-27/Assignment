@@ -34,7 +34,7 @@ def build_messages(history: list[ChatMessage], sources: list[Source], question: 
 def used_citations(answer: str, sources: list[Source]) -> list[dict]:
     """Keep only the sources the model actually cited in its answer.
 
-    Accepts [1] and the full-width 【1】 that some models (e.g. gpt-oss) emit.
+    Accepts [1] and the full-width 【1】 that some chat models emit.
     """
     cited = {int(n) for n in re.findall(r"[\[【](\d+)[\]】]", answer)}
     return [s.as_citation() for s in sources if s.number in cited]

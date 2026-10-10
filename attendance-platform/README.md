@@ -4,7 +4,7 @@ Employees **punch in/out**. Admins manage **users, shifts and attendance**, see 
 A **chatbot** answers attendance questions in plain English ("Who was absent yesterday?"), with **role-based access** and **PII masking**.
 
 - **Backend:** FastAPI · PostgreSQL · SQLAlchemy
-- **AI:** any OpenAI-compatible LLM with tool calling (Groq `gpt-oss-120b` by default, free tier)
+- **AI:** Agent Router (Axon) `deepseek-v4-flash` with tool calling
 - **UI:** Streamlit (employee view + admin view with charts)
 - **Ops:** Docker Compose · JSON logs with request ids · `/health` · pytest
 
@@ -28,7 +28,7 @@ Architecture, diagrams and trade-offs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 ### Option A: Docker (recommended)
 
 ```bash
-cp .env.example .env              # put your LLM_API_KEY in it (free key: https://console.groq.com)
+cp .env.example .env              # set AXON_API_KEY (Agent Router)
 docker compose up --build
 docker compose exec api python -m app.seed      # optional: demo data
 ```
@@ -97,7 +97,7 @@ All settings are environment variables (see [.env.example](.env.example) and [ap
 |---|---|---|
 | `DATABASE_URL` | local Postgres | Any Postgres (Supabase works) |
 | `JWT_SECRET` | placeholder | **Set a long random value in production** |
-| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | Groq / – / `openai/gpt-oss-120b` | Any OpenAI-compatible API that supports tool calling |
+| `AXON_BASE_URL` / `AXON_API_KEY` / `LLM_MODEL` | `https://agentrouter.org` / – / `deepseek-v4-flash` | `LLM_BASE_URL` and `LLM_API_KEY` aliases supported |
 | `TIMEZONE` | `Asia/Kolkata` | Punch times and lateness are judged in this timezone |
 | `WORK_DAYS` | `[0,1,2,3,4]` | Days that count for absence (Mon=0 … Sun=6) |
 

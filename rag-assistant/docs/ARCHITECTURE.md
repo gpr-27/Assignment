@@ -9,7 +9,7 @@ flowchart LR
     API --> PG[(PostgreSQL + pgvector)]
     API --> FS[(File storage<br/>original uploads)]
     API --> EMB[Embedding model<br/>bge-small, local]
-    API -->|OpenAI-compatible API| LLM[LLM<br/>Groq gpt-oss-120b]
+    API -->|OpenAI-compatible API| LLM[LLM<br/>Axon deepseek-v4-flash]
 ```
 
 The UI is a thin client: everything goes through the API, so any other client (mobile, Slack bot, curl) gets the same behaviour and the same security checks.
@@ -28,7 +28,7 @@ flowchart TB
         DB --- V1
         API --- V2
     end
-    API -->|HTTPS| Groq["Groq API (external)"]
+    API -->|HTTPS| Axon["Agent Router / Axon (external)"]
     Browser --> UI
 ```
 
@@ -183,7 +183,7 @@ sequenceDiagram
     participant API
     participant DB as Postgres
     participant E as Embedding model
-    participant L as LLM (Groq)
+    participant L as LLM (Axon)
 
     U->>API: POST /chat/sessions/{id}/ask {question}
     API->>DB: check session belongs to user
@@ -235,11 +235,11 @@ flowchart LR
 |---|---|---|
 | **pgvector instead of a separate vector DB** | One database for everything: transactions, joins for access control, cascade deletes, one backup | A dedicated vector DB (Qdrant, Pinecone) scales further at hundreds of millions of vectors. With many tenants in one HNSW index, filtered search can return fewer than k results; fix with pgvector iterative scans or per-tenant partitions. |
 | **Local embeddings (fastembed, bge-small)** | Free, no rate limits, no data leaves the server, fast on CPU | Lower quality than large hosted embedding models. Switching model means changing `EMBEDDING_MODEL`/`EMBEDDING_DIM` and re-indexing. |
-| **Groq via an OpenAI-compatible client** | Free tier, very fast; the same code works with OpenAI, Ollama, vLLM, etc. | The free tier has low limits (about 8K tokens/min), so top-k and history are kept small. Production would use a paid tier. |
+| **Agent Router (Axon) via an OpenAI-compatible client** | Single provider endpoint; model fixed to `deepseek-v4-flash` for consistency. | Depends on Agent Router availability and quotas; top-k and history are kept small to limit token use. |
 | **FastAPI `BackgroundTasks` for indexing** | No extra infrastructure; upload returns immediately | Work is lost if the process dies mid-index (the document stays `processing`, and you can re-index it). At scale, use a queue (Celery/RQ/SQS) with retries. |
 | **Character-based chunking with overlap and boundary snapping** | Simple, predictable, no tokenizer dependency | Not structure-aware (headings, tables). Could add semantic or heading-based splitting. |
 | **Follow-up handling: retrieve with previous question + current question** | Cheap and works for most follow-ups, with no extra LLM call | An LLM "rewrite the question" step is more accurate but doubles LLM calls. |
-| **Citations: the model writes `[n]`, the server keeps only cited sources** | Users see exactly which sources back the answer | Relies on the model following instructions. The `gpt-oss` model sometimes uses `【n】`, which is also handled. |
+| **Citations: the model writes `[n]`, the server keeps only cited sources** | Users see exactly which sources back the answer | Relies on the model following instructions. Some models use full-width `【n】` instead of `[n]`; both are handled. |
 | **Files on local disk / volume** | Simplest. Isolated behind `storage.py` | Multiple API instances need shared storage. Swap `storage.py` for S3. |
 | **`create_all` instead of migrations** | Fewer moving parts for a first version | Schema changes after launch need Alembic migrations. |
 | **Sync SQLAlchemy + sync endpoints** | Easier to read and debug; FastAPI runs them in a thread pool | Async would handle more concurrent slow requests per process. Adding workers (`--workers`) is the simple fix. |
