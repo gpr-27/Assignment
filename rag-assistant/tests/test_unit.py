@@ -1,8 +1,5 @@
 """Pure logic tests, no database needed."""
 
-from types import SimpleNamespace
-
-from app import llm
 from app.security import hash_password, verify_password
 from app.services.chat import used_citations
 from app.services.ingestion import split_text
