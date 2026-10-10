@@ -1,6 +1,6 @@
 """All settings come from environment variables (or a local .env file)."""
 
-from pydantic import AliasChoices, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,16 +18,9 @@ class Settings(BaseSettings):
     admin_email: str = "admin@example.com"
     admin_password: str = "admin12345"
 
-    # LLM via Agent Router (Axon), OpenAI-compatible /v1/chat/completions (tool calling)
-    llm_base_url: str = Field(
-        default="https://agentrouter.org",
-        validation_alias=AliasChoices("AXON_BASE_URL", "LLM_BASE_URL"),
-    )
-    llm_api_key: str = Field(
-        default="",
-        validation_alias=AliasChoices("AXON_API_KEY", "AGENTROUTER_API_KEY", "LLM_API_KEY"),
-    )
-    llm_model: str = "deepseek-v4-flash"
+    # LLM via official Anthropic API (https://console.anthropic.com), tool calling
+    anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
+    llm_model: str = "claude-sonnet-4-20250514"
     llm_timeout_seconds: float = 60
 
     # Attendance rules

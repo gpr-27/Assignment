@@ -6,7 +6,7 @@ sqlalchemy==2.1.4
 psycopg[binary]==3.3.6
 bcrypt==5.0.0
 pyjwt==2.15.1
-openai==3.27.0
+anthropic==1.13.0
 streamlit==1.65.0
 requests==2.34.2
 pytest==9.1.1

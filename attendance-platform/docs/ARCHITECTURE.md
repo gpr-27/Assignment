@@ -8,7 +8,7 @@ flowchart LR
     A[Admin] --> UI
     UI -->|REST, JWT| API[FastAPI backend]
     API --> PG[(PostgreSQL)]
-    API -->|tool calling, PII-masked data only| LLM[LLM<br/>Axon deepseek-v4-flash]
+    API -->|tool use, PII-masked data only| LLM[LLM<br/>Claude Sonnet]
 ```
 
 The UI is a thin client. All rules (roles, punch rules, masking, auditing) live in the API, so they apply to every client.
@@ -25,7 +25,7 @@ flowchart TB
         UI --> API --> DB
         DB --- V1
     end
-    API -->|HTTPS| Axon["Agent Router / Axon (external)"]
+    API -->|HTTPS| Anthropic["Anthropic API (external)"]
     Browser --> UI
 ```
 
@@ -162,7 +162,7 @@ sequenceDiagram
     actor U as User
     participant API
     participant BOT as chatbot service
-    participant L as LLM (Axon)
+    participant L as LLM (Anthropic)
     participant R as reports service
     participant DB as Postgres
 
@@ -235,5 +235,5 @@ flowchart TD
 | **Deactivated employees are excluded from reports** | Reports reflect the current workforce | Historic reports for people who left would need a `left_at` date. |
 | **Lateness stored at punch time** (`is_late`) | Fast reports; history doesn't change if a shift is edited later | Changing a shift doesn't re-grade old days. That's intentional, but worth knowing. |
 | **`create_all` instead of migrations** | Fewer moving parts for a first version | Use Alembic once the schema needs to change in production. |
-| **Agent Router (Axon) via an OpenAI-compatible client** | Tool calling via `deepseek-v4-flash`; base URL and key configured in env | Depends on Agent Router availability and quotas. |
+| **Anthropic Messages API (`anthropic` SDK)** | Tool use via Claude; `ANTHROPIC_API_KEY` and model in env | Depends on Anthropic availability and quotas. |
 | **Sync SQLAlchemy** | Simple and readable | Add uvicorn workers for more throughput; async if needed. |

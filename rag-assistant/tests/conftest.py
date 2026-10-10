@@ -38,8 +38,7 @@ def fake_ai(monkeypatch):
 
     def fake_stream_chat(messages):
         calls.append(messages)
-        yield "Employees get 24 days "
-        yield "of leave [1]."
+        return iter(["Employees get 24 days ", "of leave [1]."])
 
     monkeypatch.setattr(embeddings, "embed_texts", lambda texts: [fake_embed(t) for t in texts])
     monkeypatch.setattr(embeddings, "embed_query", fake_embed)
