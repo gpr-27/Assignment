@@ -43,17 +43,29 @@ def stream_answer(session_id: int, question: str, collection_ids: list[int] | No
         yield f"⚠️ {response.json().get('detail')}"
         return
     event = None
+    got_text = False
     for line in response.iter_lines(decode_unicode=True):
+        if not line:
+            continue
         if line.startswith("event: "):
             event = line.removeprefix("event: ")
         elif line.startswith("data: "):
-            data = json.loads(line.removeprefix("data: "))
+            try:
+                data = json.loads(line.removeprefix("data: "))
+            except json.JSONDecodeError:
+                continue
             if event == "token":
-                yield data["text"]
+                text = data.get("text") or ""
+                if text:
+                    got_text = True
+                    yield text
             elif event == "citations":
                 st.session_state.last_citations = data
             elif event == "error":
-                yield f"\n\n⚠️ {data['detail']}"
+                got_text = True
+                yield f"⚠️ {data.get('detail', 'The AI model failed.')}"
+    if not got_text:
+        yield "⚠️ No response received from the AI. Please try again."
 
 
 def show_citations(citations) -> None:

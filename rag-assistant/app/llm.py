@@ -32,15 +32,41 @@ def _client() -> openai.OpenAI:
     )
 
 
+def _reasoning_from_delta(delta) -> str | None:
+    reasoning = getattr(delta, "reasoning_content", None) or getattr(delta, "reasoning", None)
+    if reasoning:
+        return reasoning
+    extra = getattr(delta, "model_extra", None) or {}
+    return extra.get("reasoning_content") or extra.get("reasoning")
+
+
 def stream_chat(messages: list[dict]) -> Iterator[str]:
     """Yield the answer text piece by piece as the model generates it."""
+    reasoning_parts: list[str] = []
+    saw_content = False
     try:
         stream = _client().chat.completions.create(
             model=settings.llm_model, messages=messages, temperature=0.2, stream=True
         )
         for chunk in stream:
-            # Some models also stream hidden "reasoning"; we only forward the real answer text.
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+            # Agent Router sometimes emits bare `None` keep-alive chunks.
+            if chunk is None or not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if delta.refusal:
+                raise LLMError(delta.refusal)
+            if delta.content:
+                saw_content = True
+                yield delta.content
+                continue
+            reasoning = _reasoning_from_delta(delta)
+            if reasoning:
+                reasoning_parts.append(reasoning)
+        if not saw_content:
+            fallback = "".join(reasoning_parts).strip()
+            if fallback:
+                yield fallback
+            else:
+                raise LLMError("The model returned an empty response.")
     except openai.OpenAIError as exc:
         raise LLMError(str(exc)) from exc

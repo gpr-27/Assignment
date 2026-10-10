@@ -101,11 +101,14 @@ def answer(db: Session, user: User, question: str) -> tuple[str, list[str]]:
     for _ in range(MAX_TOOL_ROUNDS):
         reply = llm.chat(messages, tools_for(user))
         if not reply.tool_calls:
-            return reply.content or "", tools_used
+            text = llm.message_text(reply).strip()
+            if not text:
+                raise llm.LLMError("The model returned an empty response.")
+            return text, tools_used
 
         messages.append({
             "role": "assistant",
-            "content": reply.content or "",
+            "content": llm.message_text(reply),
             "tool_calls": [{"id": c.id, "type": "function",
                             "function": {"name": c.function.name, "arguments": c.function.arguments}}
                            for c in reply.tool_calls],

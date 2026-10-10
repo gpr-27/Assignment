@@ -31,6 +31,17 @@ def _client() -> openai.OpenAI:
     )
 
 
+def message_text(message) -> str:
+    """Visible assistant text (some models put tokens in reasoning fields instead of content)."""
+    if message.content:
+        return message.content
+    reasoning = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None)
+    if reasoning:
+        return reasoning
+    extra = getattr(message, "model_extra", None) or {}
+    return extra.get("reasoning_content") or extra.get("reasoning") or ""
+
+
 def chat(messages: list[dict], tools: list[dict]):
     """One model turn. Returns the assistant message (which may contain tool calls)."""
     try:
@@ -39,4 +50,6 @@ def chat(messages: list[dict], tools: list[dict]):
         )
     except openai.OpenAIError as exc:
         raise LLMError(str(exc)) from exc
+    if not response.choices:
+        raise LLMError("The model returned an empty response.")
     return response.choices[0].message

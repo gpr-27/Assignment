@@ -55,12 +55,20 @@ def stream_answer(session_id: int, messages: list[dict], sources: list[Source]) 
             for text in llm.stream_chat(messages):
                 parts.append(text)
                 yield sse("token", {"text": text})
-    except llm.LLMError:
+    except llm.LLMError as exc:
         logger.exception("llm call failed", extra={"session_id": session_id})
-        yield sse("error", {"detail": "The AI model is unavailable right now. Please try again."})
+        detail = str(exc).strip() or "The AI model is unavailable right now. Please try again."
+        yield sse("error", {"detail": detail})
+        return
+    except Exception:
+        logger.exception("unexpected error while streaming answer", extra={"session_id": session_id})
+        yield sse("error", {"detail": "Something went wrong while generating the answer. Please try again."})
         return
 
-    answer = "".join(parts)
+    answer = "".join(parts).strip()
+    if not answer:
+        yield sse("error", {"detail": "The AI model returned an empty response. Please try again."})
+        return
     citations = used_citations(answer, sources)
     # The request's DB session is gone by the time streaming ends, so open a fresh one.
     with SessionLocal() as db:
