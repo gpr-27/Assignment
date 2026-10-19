@@ -2,9 +2,9 @@
 
 Two production-style projects, built the same way (FastAPI · PostgreSQL · Streamlit · Docker · pytest) so each is easy to follow once you know the other.
 
-| Project                                            | What it does                                                                                                                                            | Docs                                                                                               |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [**1. RAG Assistant**](rag-assistant/)             | Upload documents into namespaces/collections and chat with them. Streaming answers with citations, chat memory, auth, document lifecycle.               | [README](rag-assistant/README.md) · [Architecture](rag-assistant/docs/ARCHITECTURE.md)             |
+| Project | What it does | Docs |
+|---|---|---|
+| [**1. RAG Assistant**](rag-assistant/) | Upload documents into namespaces/collections and chat with them. Streaming answers with citations, chat memory, auth, document lifecycle. | [README](rag-assistant/README.md) · [Architecture](rag-assistant/docs/ARCHITECTURE.md) |
 | [**2. Attendance Platform**](attendance-platform/) | Punch in/out, admin management of users/shifts/attendance, trend + absenteeism reports, audit log, and an attendance chatbot with RBAC and PII masking. | [README](attendance-platform/README.md) · [Architecture](attendance-platform/docs/ARCHITECTURE.md) |
 
 ## Before you run: what to set
@@ -16,13 +16,14 @@ cd rag-assistant        # or attendance-platform
 cp .env.example .env
 ```
 
-| Variable                         | Required?                   | What to put                                                                                                                                            |
-| -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ANTHROPIC_API_KEY`               | **Yes**                     | Anthropic API key from [console.anthropic.com](https://console.anthropic.com)                                                                          |
-| `DATABASE_URL`                   | Only without Docker         | Supabase: **Project Settings → Database → Connection string → Session pooler** (port 5432). Docker Compose provides its own database and ignores this. |
-| `JWT_SECRET`                     | Yes for any real deployment | A long random string: `python -c "import secrets; print(secrets.token_urlsafe(48))"`                                                                   |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional                    | The first admin account, created on startup. Default `admin@example.com` / `admin12345`                                                                |
-| `LLM_MODEL`                      | Optional                    | Claude model id; default `claude-sonnet-4-20250514`.                                                                                                   |
+| Variable | Required? | What to put |
+|---|---|---|
+| `AXON_API_KEY` | **Yes** | Agent Router (Axon) API key (`LLM_API_KEY` / `AGENTROUTER_API_KEY` also work) |
+| `DATABASE_URL` | Only without Docker | Supabase: **Project Settings → Database → Connection string → Session pooler** (port 5432). Docker Compose provides its own database and ignores this. |
+| `JWT_SECRET` | Yes for any real deployment | A long random string: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional | The first admin account, created on startup. Default `admin@example.com` / `admin12345` |
+| `AXON_BASE_URL` | Optional | Agent Router endpoint; default `https://agentrouter.org` (`LLM_BASE_URL` alias). |
+| `LLM_MODEL` | Optional | Chat model id; default `deepseek-v4-flash`. |
 
 > **Use a separate database for each project.** Both have a `users` table with different columns. On Supabase's free tier, create **two projects** (one per app) and use each one's connection string.
 
@@ -31,14 +32,13 @@ cp .env.example .env
 ## Run
 
 **With Docker** (each project, from its folder):
-
 ```bash
 docker compose up --build
 ```
 
-|                     | API docs                   | UI                    |
-| ------------------- | -------------------------- | --------------------- |
-| RAG Assistant       | http://localhost:8000/docs | http://localhost:8501 |
+| | API docs | UI |
+|---|---|---|
+| RAG Assistant | http://localhost:8000/docs | http://localhost:8501 |
 | Attendance Platform | http://localhost:8001/docs | http://localhost:8502 |
 
 For attendance demo data: `docker compose exec api python -m app.seed`
@@ -56,17 +56,17 @@ Use an empty database for tests. The tables are dropped and recreated. The LLM a
 
 ## Where to find each deliverable
 
-| Deliverable                                                                                                  | Location                                                   |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| High-level architecture diagram                                                                              | `*/docs/ARCHITECTURE.md` §1                                |
-| Deployment diagram                                                                                           | `*/docs/ARCHITECTURE.md` §2                                |
-| Component diagram                                                                                            | `*/docs/ARCHITECTURE.md` §3                                |
-| Database ER diagram                                                                                          | `*/docs/ARCHITECTURE.md` §4                                |
-| Sequence diagrams & flowcharts                                                                               | `*/docs/ARCHITECTURE.md` §5                                |
-| Non-functional requirements (security, scalability, observability, resilience, maintainability, performance) | `*/docs/ARCHITECTURE.md` §6                                |
-| Trade-off analysis                                                                                           | `*/docs/ARCHITECTURE.md` §7                                |
-| API documentation                                                                                            | Each README's "API overview", plus live Swagger at `/docs` |
-| README                                                                                                       | This file + one per project                                |
+| Deliverable | Location |
+|---|---|
+| High-level architecture diagram | `*/docs/ARCHITECTURE.md` §1 |
+| Deployment diagram | `*/docs/ARCHITECTURE.md` §2 |
+| Component diagram | `*/docs/ARCHITECTURE.md` §3 |
+| Database ER diagram | `*/docs/ARCHITECTURE.md` §4 |
+| Sequence diagrams & flowcharts | `*/docs/ARCHITECTURE.md` §5 |
+| Non-functional requirements (security, scalability, observability, resilience, maintainability, performance) | `*/docs/ARCHITECTURE.md` §6 |
+| Trade-off analysis | `*/docs/ARCHITECTURE.md` §7 |
+| API documentation | Each README's "API overview", plus live Swagger at `/docs` |
+| README | This file + one per project |
 
 Diagrams are written in Mermaid, which GitHub renders automatically.
 
@@ -77,6 +77,6 @@ Diagrams are written in Mermaid, which GitHub renders automatically.
 - **Auth:** bcrypt + JWT; roles checked on the server for every request.
 - **Logging:** one JSON line per request with request id, status and latency; `X-Request-ID` header; unexpected errors return `500` + request id, never a stack trace.
 - **Resilience:** LLM timeouts + retries; LLM failures return a clean error while the rest of the app keeps working; DB connection retry on startup; Docker health checks and restart policies.
-- **LLM:** Official Anthropic Messages API (`anthropic` SDK, default `claude-sonnet-4-20250514`). Set `ANTHROPIC_API_KEY` and optionally `LLM_MODEL` in `.env`.
+- **LLM:** Agent Router (Axon) via the standard OpenAI client (`deepseek-v4-flash`). Override base URL or model in `.env` if needed.
 
-What's intentionally _not_ included (bonus items, out of scope): CI/CD, caching, metrics dashboards, cloud deployment, job queues, DB migrations. Each project's trade-off section says how these would be added.
+What's intentionally *not* included (bonus items, out of scope): CI/CD, caching, metrics dashboards, cloud deployment, job queues, DB migrations. Each project's trade-off section says how these would be added.

@@ -4,7 +4,7 @@ Upload documents (PDF, TXT, MD) into **namespaces** and **collections**, then ch
 Answers **stream** back token by token, with **citations** (file + page) and **conversational memory**.
 
 - **Backend:** FastAPI · PostgreSQL + pgvector · SQLAlchemy
-- **AI:** Anthropic Claude (`claude-sonnet-4-20250514` by default) · local embeddings (`bge-small-en-v1.5` via fastembed, no API key)
+- **AI:** Agent Router (Axon) `deepseek-v4-flash` · local embeddings (`bge-small-en-v1.5` via fastembed, no API key)
 - **UI:** Streamlit
 - **Ops:** Docker Compose · JSON logs with request ids · `/health` · pytest
 
@@ -29,7 +29,7 @@ Architecture, diagrams and trade-offs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 ### Option A: Docker (recommended)
 
 ```bash
-cp .env.example .env          # set ANTHROPIC_API_KEY
+cp .env.example .env          # set AXON_API_KEY (Agent Router)
 docker compose up --build
 ```
 
@@ -106,7 +106,7 @@ All settings are environment variables (see [.env.example](.env.example) and [ap
 |---|---|---|
 | `DATABASE_URL` | local Postgres | Postgres with pgvector (Supabase works) |
 | `JWT_SECRET` | placeholder | **Set a long random value in production** |
-| `ANTHROPIC_API_KEY` / `LLM_MODEL` | – / `claude-sonnet-4-20250514` | Key from [console.anthropic.com](https://console.anthropic.com) |
+| `AXON_BASE_URL` / `AXON_API_KEY` / `LLM_MODEL` | `https://agentrouter.org` / – / `deepseek-v4-flash` | `LLM_BASE_URL` and `LLM_API_KEY` aliases supported |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Local embedding model (384-dim) |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | 1000 / 150 | Characters per chunk / overlap |
 | `TOP_K` | 5 | Chunks retrieved per question |
@@ -134,7 +134,7 @@ app/
   db.py, models.py     database connection and tables
   schemas.py           request/response validation
   security.py          password hashing, JWT, current user
-  llm.py               Anthropic Messages API (streaming)
+  llm.py               OpenAI-compatible client (streaming)
   embeddings.py        local embedding model
   storage.py           where uploaded files are kept
   routers/             HTTP endpoints (auth, namespaces, documents, chat, health)

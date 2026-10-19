@@ -9,7 +9,7 @@ flowchart LR
     API --> PG[(PostgreSQL + pgvector)]
     API --> FS[(File storage<br/>original uploads)]
     API --> EMB[Embedding model<br/>bge-small, local]
-    API -->|Anthropic Messages API| LLM[LLM<br/>Claude Sonnet]
+    API -->|OpenAI-compatible API| LLM[LLM<br/>Axon deepseek-v4-flash]
 ```
 
 The UI is a thin client: everything goes through the API, so any other client (mobile, Slack bot, curl) gets the same behaviour and the same security checks.
@@ -28,7 +28,7 @@ flowchart TB
         DB --- V1
         API --- V2
     end
-    API -->|HTTPS| Anthropic["Anthropic API (external)"]
+    API -->|HTTPS| Axon["Agent Router / Axon (external)"]
     Browser --> UI
 ```
 
@@ -183,7 +183,7 @@ sequenceDiagram
     participant API
     participant DB as Postgres
     participant E as Embedding model
-    participant L as LLM (Anthropic)
+    participant L as LLM (Axon)
 
     U->>API: POST /chat/sessions/{id}/ask {question}
     API->>DB: check session belongs to user
@@ -235,7 +235,7 @@ flowchart LR
 |---|---|---|
 | **pgvector instead of a separate vector DB** | One database for everything: transactions, joins for access control, cascade deletes, one backup | A dedicated vector DB (Qdrant, Pinecone) scales further at hundreds of millions of vectors. With many tenants in one HNSW index, filtered search can return fewer than k results; fix with pgvector iterative scans or per-tenant partitions. |
 | **Local embeddings (fastembed, bge-small)** | Free, no rate limits, no data leaves the server, fast on CPU | Lower quality than large hosted embedding models. Switching model means changing `EMBEDDING_MODEL`/`EMBEDDING_DIM` and re-indexing. |
-| **Anthropic Messages API (`anthropic` SDK)** | Official Claude endpoint; default `claude-sonnet-4-20250514`. Streaming for RAG answers. | Depends on Anthropic availability and quotas; top-k and history are kept small to limit token use. |
+| **Agent Router (Axon) via an OpenAI-compatible client** | Single provider endpoint; model fixed to `deepseek-v4-flash` for consistency. | Depends on Agent Router availability and quotas; top-k and history are kept small to limit token use. |
 | **FastAPI `BackgroundTasks` for indexing** | No extra infrastructure; upload returns immediately | Work is lost if the process dies mid-index (the document stays `processing`, and you can re-index it). At scale, use a queue (Celery/RQ/SQS) with retries. |
 | **Character-based chunking with overlap and boundary snapping** | Simple, predictable, no tokenizer dependency | Not structure-aware (headings, tables). Could add semantic or heading-based splitting. |
 | **Follow-up handling: retrieve with previous question + current question** | Cheap and works for most follow-ups, with no extra LLM call | An LLM "rewrite the question" step is more accurate but doubles LLM calls. |

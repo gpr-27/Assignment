@@ -4,7 +4,7 @@ Employees **punch in/out**. Admins manage **users, shifts and attendance**, see 
 A **chatbot** answers attendance questions in plain English ("Who was absent yesterday?"), with **role-based access** and **PII masking**.
 
 - **Backend:** FastAPI · PostgreSQL · SQLAlchemy
-- **AI:** Anthropic Claude (`claude-sonnet-4-20250514` by default) with tool calling
+- **AI:** Agent Router (Axon) `deepseek-v4-flash` with tool calling
 - **UI:** Streamlit (employee view + admin view with charts)
 - **Ops:** Docker Compose · JSON logs with request ids · `/health` · pytest
 
@@ -28,7 +28,7 @@ Architecture, diagrams and trade-offs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 ### Option A: Docker (recommended)
 
 ```bash
-cp .env.example .env              # set ANTHROPIC_API_KEY
+cp .env.example .env              # set AXON_API_KEY (Agent Router)
 docker compose up --build
 docker compose exec api python -m app.seed      # optional: demo data
 ```
@@ -97,7 +97,7 @@ All settings are environment variables (see [.env.example](.env.example) and [ap
 |---|---|---|
 | `DATABASE_URL` | local Postgres | Any Postgres (Supabase works) |
 | `JWT_SECRET` | placeholder | **Set a long random value in production** |
-| `ANTHROPIC_API_KEY` / `LLM_MODEL` | – / `claude-sonnet-4-20250514` | Key from [console.anthropic.com](https://console.anthropic.com) |
+| `AXON_BASE_URL` / `AXON_API_KEY` / `LLM_MODEL` | `https://agentrouter.org` / – / `deepseek-v4-flash` | `LLM_BASE_URL` and `LLM_API_KEY` aliases supported |
 | `TIMEZONE` | `Asia/Kolkata` | Punch times and lateness are judged in this timezone |
 | `WORK_DAYS` | `[0,1,2,3,4]` | Days that count for absence (Mon=0 … Sun=6) |
 
@@ -120,7 +120,7 @@ app/
   schemas.py           request/response validation
   security.py          password hashing, JWT, current user, admin check
   pii.py               masking of emails / phone numbers
-  llm.py               Anthropic Messages API (tool use)
+  llm.py               OpenAI-compatible client (tool calling)
   seed.py              demo data
   routers/             HTTP endpoints (auth, attendance, users, shifts, reports, audit, chat, health)
   services/

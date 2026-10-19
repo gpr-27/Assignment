@@ -1,5 +1,8 @@
 """Pure logic tests, no database needed."""
 
+from types import SimpleNamespace
+
+from app import llm
 from app.security import hash_password, verify_password
 from app.services.chat import used_citations
 from app.services.ingestion import split_text
@@ -25,6 +28,57 @@ def test_password_hashing():
     assert hashed != "secret-pass"
     assert verify_password("secret-pass", hashed)
     assert not verify_password("wrong", hashed)
+
+
+def test_stream_chat_skips_none_chunks_and_yields_content(monkeypatch):
+    chunks = [
+        None,
+        SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None, refusal=None))]),
+        SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="Hello ", refusal=None, model_extra=None))]
+        ),
+        SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="world", refusal=None, model_extra=None))]
+        ),
+    ]
+
+    def fake_create(**kwargs):
+        return iter(chunks)
+
+    monkeypatch.setattr(llm, "_client", lambda: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))))
+
+    assert list(llm.stream_chat([{"role": "user", "content": "hi"}])) == ["Hello ", "world"]
+
+
+def test_stream_chat_falls_back_to_reasoning_when_no_content(monkeypatch):
+    chunks = [
+        SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(
+                        content=None,
+                        refusal=None,
+                        reasoning_content="think ",
+                        model_extra=None,
+                    )
+                )
+            ]
+        ),
+        SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(content=None, refusal=None, reasoning_content="aloud", model_extra=None)
+                )
+            ]
+        ),
+    ]
+
+    def fake_create(**kwargs):
+        return iter(chunks)
+
+    monkeypatch.setattr(llm, "_client", lambda: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))))
+
+    assert list(llm.stream_chat([{"role": "user", "content": "hi"}])) == ["think aloud"]
 
 
 def test_only_cited_sources_are_returned():
